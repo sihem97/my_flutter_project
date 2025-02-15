@@ -1,0 +1,69 @@
+name: pleasework
+description: "A new Flutter project."
+publish_to: 'none' # Remove this line if you wish to publish to pub.dev
+
+version: 1.0.0+1
+
+environment:
+  sdk: ">=2.19.0 <3.0.0" # Corrected SDK version
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  intl_phone_field: ^3.1.0
+  google_maps_flutter: ^2.2.0
+  image_picker: ^1.0.7
+  flutter_localizations: # Corrected placement
+    sdk: flutter
+  intl: ^0.19.0 # Corrected placement
+  uuid: ^3.0.7 # For generating unique IDs
+  cupertino_icons: ^1.0.8
+  firebase_core: ^3.9.0 # Added Firebase Core package
+  firebase_auth: ^5.3.4   # Add other Firebase packages as needed
+  google_fonts: ^6.0.0  # Use the latest version
+  cloud_firestore: ^5.6.3 # For Firestore database
+  permission_handler: ^11.3.1
+  firebase_messaging: ^15.2.2
+  flutter_local_notifications: ^18.0.1
+  firebase_storage: ^12.4.2
+  firebase_data_connect: ^0.1.3
+  pin_code_fields: ^8.0.1
+  geolocator: ^10.0.0
+  shared_preferences: ^2.5.2
+  http: ^1.3.0
+  flutter_native_splash: ^2.4.4
+  flutter_launcher_icons: ^0.14.3
+  url_launcher: ^6.3.1
+  # For sending data to workers
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^5.0.0
+
+flutter:
+  generate: true
+  uses-material-design: true
+  assets:
+    - assets/logo.png
+    - assets/plumbing.jpg
+    - assets/gardening.jpg
+    - assets/apprentissage.jpg
+    - assets/peinture.jpg
+    - assets/electricity.jpg
+    - assets/nettoyage.jpg
+
+
+flutter_native_splash:
+        color: "#FFFFFF"
+        image: assets/logo.png
+        android_12:
+          image: assets/logo.png
+          icon_background_color: "#FFFFFF"
+
+flutter_icons:
+  android: true
+  ios: true
+  image_path: "assets/logo.png"  # Path to your app icon
+  adaptive_icon_foreground: "assets/logo.png"  # For Android adaptive icons
+  adaptive_icon_background: "#FFFFFF"  # Background color for Android adaptive icons

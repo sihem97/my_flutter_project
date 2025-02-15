@@ -1,0 +1,48 @@
+{
+  "project_info": {
+    "project_number": "15280913302",
+    "project_id": "pleasework-286b5",
+    "storage_bucket": "pleasework-286b5.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:15280913302:android:64f39f1b83de869ee07bb7",
+        "android_client_info": {
+          "package_name": "com.example.flutter_firebase"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyD92-wFuKm13NtxoFNWdQEd0zKGY3kIJKA"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:15280913302:android:afe76836520b0449e07bb7",
+        "android_client_info": {
+          "package_name": "com.example.pleasework"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyD92-wFuKm13NtxoFNWdQEd0zKGY3kIJKA"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

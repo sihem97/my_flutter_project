@@ -1,0 +1,11 @@
+{
+  "appTitle": "Titre de l'application",
+  "email": "Email",
+  "password": "Mot de passe",
+  "signIn": "Se connecter",
+  "signUp": "Vous n'avez pas de compte? S'inscrire",
+  "emailRequired": "L'email est requis",
+  "passwordRequired": "Le mot de passe est requis",
+  "invalidEmail": "L'email n'est pas valide",
+  "loginSuccess": "Connexion réussie"
+}
