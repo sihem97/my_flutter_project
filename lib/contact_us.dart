@@ -1,22 +1,21 @@
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'l10n/app_localizations.dart';
 
 class ContactUsScreen extends StatelessWidget {
   const ContactUsScreen({super.key});
 
-  final String email = "support@company.com";
+  final String email = "support@gmail.com";
   final String phoneNumber = "+1234567890";
 
   void _launchEmail() async {
     final Uri emailUri = Uri(
       scheme: 'mailto',
       path: email,
-      queryParameters: {'subject': 'Support Inquiry'},
+      queryParameters: {'subject': 'Support Request'},
     );
     if (await canLaunchUrl(emailUri)) {
       await launchUrl(emailUri);
-    } else {
-      debugPrint("Could not launch email");
     }
   }
 
@@ -24,49 +23,74 @@ class ContactUsScreen extends StatelessWidget {
     final Uri phoneUri = Uri(scheme: 'tel', path: phoneNumber);
     if (await canLaunchUrl(phoneUri)) {
       await launchUrl(phoneUri);
-    } else {
-      debugPrint("Could not launch phone");
     }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text("Contact Us"), backgroundColor: Colors.red),
+      appBar: AppBar(
+        title: Text(AppLocalizations.of(context).translate('contact_us')),
+        backgroundColor: Colors.red.shade800,
+      ),
       body: Padding(
         padding: const EdgeInsets.all(20.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
-              "Get in Touch",
-              style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+            Text(
+              AppLocalizations.of(context).translate('contact_us'),
+              style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                fontWeight: FontWeight.bold,
+                color: Colors.black,
+              ),
             ),
             const SizedBox(height: 10),
-            const Text(
-              "If you have any questions or need support, feel free to contact us via email or phone.",
-              style: TextStyle(fontSize: 16, color: Colors.black54),
+            Text(
+              AppLocalizations.of(context).translate('contact_us_description'),
+              style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                color: Colors.grey[700],
+              ),
             ),
             const SizedBox(height: 20),
-
-            // Email Section
-            ListTile(
-              leading: const Icon(Icons.email, color: Colors.red),
-              title: Text(
-                email,
-                style: const TextStyle(fontSize: 18, color: Colors.blue, decoration: TextDecoration.underline),
+            Card(
+              elevation: 4,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16),
               ),
-              onTap: _launchEmail,
-            ),
-
-            // Phone Section
-            ListTile(
-              leading: const Icon(Icons.phone, color: Colors.red),
-              title: Text(
-                phoneNumber,
-                style: const TextStyle(fontSize: 18, color: Colors.blue, decoration: TextDecoration.underline),
+              child: Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    ListTile(
+                      leading: Icon(Icons.email, color: Colors.red.shade800),
+                      title: Text(
+                        email,
+                        style: TextStyle(
+                          fontSize: 18,
+                          color: Colors.blue.shade600,
+                          decoration: TextDecoration.underline,
+                        ),
+                      ),
+                      onTap: _launchEmail,
+                    ),
+                    const Divider(color: Colors.grey),
+                    ListTile(
+                      leading: Icon(Icons.phone, color: Colors.red.shade800),
+                      title: Text(
+                        phoneNumber,
+                        style: TextStyle(
+                          fontSize: 18,
+                          color: Colors.blue.shade600,
+                          decoration: TextDecoration.underline,
+                        ),
+                      ),
+                      onTap: _launchPhone,
+                    ),
+                  ],
+                ),
               ),
-              onTap: _launchPhone,
             ),
           ],
         ),

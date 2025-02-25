@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'client_home.dart';
+import 'l10n/app_localizations.dart';
 
 class BidsScreen extends StatefulWidget {
   final String requestId;
 
-  const BidsScreen({super.key, required this.requestId});
+  const BidsScreen({Key? key, required this.requestId}) : super(key: key);
 
   @override
   _BidsScreenState createState() => _BidsScreenState();
@@ -13,17 +15,52 @@ class BidsScreen extends StatefulWidget {
 class _BidsScreenState extends State<BidsScreen> {
   bool _isSnackBarShown = false;
 
+  /// This function fetches all review documents for a given workerId,
+  /// calculates and returns the average rating.
+  Future<double> _getWorkerRating(String workerId) async {
+    QuerySnapshot snapshot = await FirebaseFirestore.instance
+        .collection('reviews')
+        .where('workerId', isEqualTo: workerId)
+        .get();
+    if (snapshot.docs.isEmpty) {
+      return 0.0;
+    }
+    double sum = 0.0;
+    for (var doc in snapshot.docs) {
+      sum += (doc['rating'] as num).toDouble();
+    }
+    return sum / snapshot.docs.length;
+  }
+
+  /// Helper method to build star icons based on rating.
+  Widget _buildStarIcons(double rating) {
+    int fullStars = rating.floor();
+    bool halfStar = (rating - fullStars) >= 0.5;
+    List<Widget> stars = [];
+    for (int i = 0; i < fullStars; i++) {
+      stars.add(const Icon(Icons.star, color: Colors.amber, size: 16));
+    }
+    if (halfStar) {
+      stars.add(const Icon(Icons.star_half, color: Colors.amber, size: 16));
+    }
+    // Optionally fill with empty stars to show a 5-star scale.
+    while (stars.length < 5) {
+      stars.add(const Icon(Icons.star_border, color: Colors.amber, size: 16));
+    }
+    return Row(children: stars);
+  }
+
   @override
   Widget build(BuildContext context) {
-    // Debug: Print the requestId to verify it's correct
-    print("Request ID in BidsScreen: ${widget.requestId}");
-
     return Scaffold(
-      appBar: AppBar(title: const Text('Bids for Your Request')),
+      appBar: AppBar(
+        title: Text(AppLocalizations.of(context).translate('bids')),
+        backgroundColor: Colors.red.shade800,
+      ),
       body: StreamBuilder(
         stream: FirebaseFirestore.instance
             .collection('bids')
-            .where('requestId', isEqualTo: widget.requestId) // Ensure this matches the requestId
+            .where('requestId', isEqualTo: widget.requestId)
             .snapshots(),
         builder: (context, AsyncSnapshot<QuerySnapshot> snapshot) {
           if (!snapshot.hasData) {
@@ -31,10 +68,7 @@ class _BidsScreenState extends State<BidsScreen> {
           }
           final bids = snapshot.data!.docs;
 
-          // Debug: Print the bids to verify they are correct
-          print("Bids for Request ID ${widget.requestId}: ${bids.map((bid) => bid.data()).toList()}");
-
-          // Check if any bid is already accepted
+          // Look for an accepted bid
           QueryDocumentSnapshot? acceptedBid;
           for (var bid in bids) {
             if (bid['status'] == 'accepted') {
@@ -43,93 +77,115 @@ class _BidsScreenState extends State<BidsScreen> {
             }
           }
 
-          // Show SnackBar only once when a bid is accepted
           if (acceptedBid != null && !_isSnackBarShown) {
             WidgetsBinding.instance.addPostFrameCallback((_) {
               ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text("Bid accepted! Worker will be notified."),
+                SnackBar(
+                  content: Text(AppLocalizations.of(context)
+                      .translate('bid_accepted')),
                 ),
               );
               setState(() {
-                _isSnackBarShown = true; // Update the state
+                _isSnackBarShown = true;
               });
             });
           }
 
           if (bids.isEmpty) {
-            return const Center(child: Text("No bids received yet."));
+            return Center(
+              child: Text(AppLocalizations.of(context)
+                  .translate('no_bids')),
+            );
           }
 
           return ListView.builder(
             itemCount: bids.length,
             itemBuilder: (context, index) {
               final bid = bids[index];
-              String workerId = bid['workerId'];
               String workerName = bid['workerName'];
-              String workerPhone = "Loading...";
               double price = bid['price'];
-
-              return FutureBuilder<DocumentSnapshot>(
-                future: FirebaseFirestore.instance.collection('users').doc(workerId).get(),
-                builder: (context, workerSnapshot) {
-                  if (workerSnapshot.hasData && workerSnapshot.data!.exists) {
-                    workerPhone = workerSnapshot.data!['phone'] ?? "No phone available";
-                  }
-
-                  // Check if this bid is the accepted one
-                  bool isAccepted = bid.id == acceptedBid?.id;
-
-                  return Card(
-                    margin: const EdgeInsets.all(10),
-                    elevation: 4,
-                    color: isAccepted ? Colors.green.shade100 : null,
-                    child: ListTile(
-                      title: Text("Worker: $workerName"),
-                      subtitle: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text("Price: \$${price.toStringAsFixed(2)}"),
-                          Text("Phone: $workerPhone"),
-                          if (isAccepted)
-                            const Text(
-                              "Accepted",
-                              style: TextStyle(
-                                fontWeight: FontWeight.bold,
-                                color: Colors.green,
-                              ),
-                            ),
-                        ],
-                      ),
-                      trailing: isAccepted
-                          ? const Icon(Icons.check_circle, color: Colors.green)
-                          : ElevatedButton(
-                        onPressed: acceptedBid != null
-                            ? null // Disable if another bid is already accepted
-                            : () async {
-                          // Debug: Print the requestId and workerId before updating
-                          print("Updating request: ${widget.requestId} with worker: $workerId");
-
-                          // Update the request status and selected worker
-                          await FirebaseFirestore.instance
-                              .collection('requests')
-                              .doc(widget.requestId)
-                              .update({
-                            'status': 'In Progress',
-                            'selectedWorkerId': workerId,
-                          });
-
-                          // Update the bid status to "accepted"
-                          await FirebaseFirestore.instance
-                              .collection('bids')
-                              .doc(bid.id)
-                              .update({'status': 'accepted'});
+              String workerId = bid['workerId'];
+              return Card(
+                margin: const EdgeInsets.all(10),
+                elevation: 4,
+                color: acceptedBid?.id == bid.id
+                    ? Colors.green.shade100
+                    : null,
+                child: ListTile(
+                  title: Text(
+                      "${AppLocalizations.of(context).translate('worker')}: $workerName"),
+                  subtitle: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                          "${AppLocalizations.of(context).translate('price')}: ${price.toStringAsFixed(2)}"),
+                      // Use a FutureBuilder to fetch and display the average rating with star icons.
+                      FutureBuilder<double>(
+                        future: _getWorkerRating(workerId),
+                        builder: (context, snapshot) {
+                          if (snapshot.connectionState == ConnectionState.waiting) {
+                            return Text(AppLocalizations.of(context)
+                                .translate('loading_rating'));
+                          } else if (snapshot.hasError) {
+                            return Text(AppLocalizations.of(context)
+                                .translate('rating_error'));
+                          } else {
+                            double rating = snapshot.data ?? 0.0;
+                            return Row(
+                              children: [
+                                Text(rating.toStringAsFixed(1)),
+                                const SizedBox(width: 4),
+                                _buildStarIcons(rating),
+                              ],
+                            );
+                          }
                         },
-                        child: const Text("Accept"),
                       ),
-                    ),
-                  );
-                },
+                      if (acceptedBid?.id == bid.id)
+                        Text(
+                          AppLocalizations.of(context).translate('accepted'),
+                          style: const TextStyle(
+                              fontWeight: FontWeight.bold,
+                              color: Colors.green),
+                        ),
+                    ],
+                  ),
+                  trailing: acceptedBid != null
+                      ? const Icon(Icons.check_circle, color: Colors.green)
+                      : ElevatedButton(
+                    onPressed: () async {
+                      // Update the bid status to 'accepted'
+                      await FirebaseFirestore.instance
+                          .collection('bids')
+                          .doc(bid.id)
+                          .update({'status': 'accepted'});
+
+                      // Update the corresponding request document with workerId and status
+                      await FirebaseFirestore.instance
+                          .collection('requests')
+                          .doc(widget.requestId)
+                          .update({
+                        'workerId': bid['workerId'],
+                        'status': 'accepted'
+                      });
+
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text(AppLocalizations.of(context)
+                              .translate('bid_confirmed')),
+                        ),
+                      );
+                      Navigator.pushReplacement(
+                        context,
+                        MaterialPageRoute(
+                            builder: (context) =>
+                            const AcceptedRequestsScreen()),
+                      );
+                    },
+                    child: Text(AppLocalizations.of(context)
+                        .translate('accept')),
+                  ),
+                ),
               );
             },
           );

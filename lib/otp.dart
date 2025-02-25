@@ -4,6 +4,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'client_home.dart';
 import 'worker_home.dart';
+import 'l10n/app_localizations.dart';
 
 class OtpScreen extends StatefulWidget {
   final String verificationID;
@@ -22,7 +23,7 @@ class OtpScreen extends StatefulWidget {
 }
 
 class _OtpScreenState extends State<OtpScreen> {
-  TextEditingController smsController = TextEditingController();
+  final TextEditingController smsController = TextEditingController();
 
   void verifyOtp() async {
     try {
@@ -38,7 +39,7 @@ class _OtpScreenState extends State<OtpScreen> {
         'phoneVerified': true,
       });
 
-      // Navigate to correct home screen
+      // Navigate to the appropriate home screen
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(
@@ -47,7 +48,7 @@ class _OtpScreenState extends State<OtpScreen> {
       );
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Invalid OTP. Please try again.')),
+        SnackBar(content: Text(AppLocalizations.of(context).translate('invalid_otp'))),
       );
     }
   }
@@ -55,32 +56,64 @@ class _OtpScreenState extends State<OtpScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Verify OTP')),
-      body: Padding(
-        padding: const EdgeInsets.all(8.0),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            PinCodeTextField(
-              appContext: context,
-              length: 6,
-              controller: smsController,
-              keyboardType: TextInputType.number,
-              pinTheme: PinTheme(
-                shape: PinCodeFieldShape.box,
-                borderRadius: BorderRadius.circular(5),
-                fieldHeight: 50,
-                fieldWidth: 40,
-                activeColor: Colors.orange.shade400,
-                inactiveColor: Colors.orange.shade400,
+      // Full-screen gradient background
+      body: Container(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            colors: [Colors.red.shade800, Colors.orange.shade400],
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+          ),
+        ),
+        child: Center(
+          child: Card(
+            margin: const EdgeInsets.symmetric(horizontal: 24.0),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16.0),
+            ),
+            elevation: 8,
+            child: Padding(
+              padding: const EdgeInsets.all(24.0),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  // Added verification icon
+                  Icon(Icons.verified_user, size: 48, color: Colors.green),
+                  const SizedBox(height: 30),
+
+                  PinCodeTextField(
+                    appContext: context,
+                    length: 6,
+                    controller: smsController,
+                    keyboardType: TextInputType.number,
+                    pinTheme: PinTheme(
+                      shape: PinCodeFieldShape.box,
+                      borderRadius: BorderRadius.circular(8),
+                      fieldHeight: 50,
+                      fieldWidth: 40,
+                      activeColor: Colors.blue,
+                      inactiveColor: Colors.grey,
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+                  ElevatedButton(
+                    onPressed: verifyOtp,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.green,
+                      padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 12),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                    ),
+                    child: Text(
+                      AppLocalizations.of(context).translate('verify_code'),
+                      style: const TextStyle(fontSize: 18, color: Colors.white),
+                    ),
+                  ),
+                ],
               ),
             ),
-            const SizedBox(height: 20),
-            ElevatedButton(
-              onPressed: verifyOtp,
-              child: const Text('Verify Code'),
-            ),
-          ],
+          ),
         ),
       ),
     );

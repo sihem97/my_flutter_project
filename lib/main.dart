@@ -1,97 +1,137 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'sign_in.dart'; // Assuming you already have this for the sign-in screen
-import 'client_home.dart'; // Add the ClientHomePage import here
-import 'worker_home.dart'; // Add the WorkerHomePage import here
-import 'package:pin_code_fields/pin_code_fields.dart';
+import 'l10n/app_localizations.dart';
+import 'notification_service.dart';
+import 'sign_in.dart'; // Your sign-in screen
+import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 
-void main() async {
-  WidgetsFlutterBinding.ensureInitialized();
+// Background message handler for Firebase Messaging.
+// This must be a top-level function.
+Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   await Firebase.initializeApp();
-  runApp(MyApp());
+  print('Handling a background message: ${message.messageId}');
 }
 
-class MyApp extends StatelessWidget {
-  const MyApp({super.key});
+Future<Locale> getSavedLocale() async {
+  SharedPreferences prefs = await SharedPreferences.getInstance();
+  String? languageCode = prefs.getString('language');
+  return Locale(languageCode ?? 'fr'); // Default to French
+}
 
-  @override
-  Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'Flutter Demo',
-      theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
-        useMaterial3: true,
-      ),
-      home: const AuthCheck(), // This widget will handle the user role check
+Future<void> _createNotificationChannel() async {
+  if (Platform.isAndroid) {
+    final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
+    FlutterLocalNotificationsPlugin();
+    const AndroidNotificationChannel channel = AndroidNotificationChannel(
+      'service_requests', // Must match the channelId used in your Cloud Function
+      'Service Requests',
+      description: 'Channel for service request notifications',
+      importance: Importance.high,
     );
+    await flutterLocalNotificationsPlugin
+        .resolvePlatformSpecificImplementation<
+        AndroidFlutterLocalNotificationsPlugin>()
+        ?.createNotificationChannel(channel);
   }
 }
 
-class AuthCheck extends StatefulWidget {
-  const AuthCheck({super.key});
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await Firebase.initializeApp(); // Initialize Firebase
 
-  @override
-  State<AuthCheck> createState() => _AuthCheckState();
+  // Set up Firebase Messaging background handler.
+  FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
+
+  // Retrieve saved locale.
+  Locale initialLocale = await getSavedLocale();
+
+  await NotificationService.initialize(); // Make sure this is called
+
+  // Create the notification channel on Android.
+  await _createNotificationChannel();
+
+  // Run the app.
+  runApp(MyApp(initialLocale));
 }
 
-class _AuthCheckState extends State<AuthCheck> {
-  bool _isLoading = true;
-  String? _userRole;
+class MyApp extends StatefulWidget {
+  final Locale initialLocale;
+  const MyApp(this.initialLocale, {Key? key}) : super(key: key);
+
+  // Allows other screens to access setLocale globally.
+  static _MyAppState of(BuildContext context) =>
+      context.findAncestorStateOfType<_MyAppState>()!;
+
+  @override
+  _MyAppState createState() => _MyAppState();
+}
+
+class _MyAppState extends State<MyApp> {
+  late Locale _locale;
 
   @override
   void initState() {
     super.initState();
-    _checkUserRole();
+    _locale = widget.initialLocale;
+    // Initialize Firebase Messaging for notifications.
+    _initializeFirebaseMessaging();
   }
 
-  Future<void> _checkUserRole() async {
-    User? user = FirebaseAuth.instance.currentUser;
+  void _initializeFirebaseMessaging() async {
+    // Request permission for notifications.
+    NotificationSettings settings = await FirebaseMessaging.instance.requestPermission(
+      alert: true,
+      badge: true,
+      sound: true,
+    );
+    print('User granted permission: ${settings.authorizationStatus}');
 
-    if (user != null) {
-      try {
-        DocumentSnapshot userDoc = await FirebaseFirestore.instance.collection('users').doc(user.uid).get();
-        if (userDoc.exists) {
-          // Retrieve the role from Firestore
-          setState(() {
-            _userRole = userDoc['role'] ?? 'client'; // Default to 'client' if role is not found
-            _isLoading = false;
-          });
-        }
-      } catch (e) {
-        // Handle any errors
-        setState(() {
-          _isLoading = false;
-        });
+    // Retrieve the FCM token.
+    FirebaseMessaging.instance.getToken().then((token) {
+      print("FCM Token: $token");
+      // Optionally, save the token to Firestore for targeted notifications.
+    });
+
+    // Listen for foreground messages.
+    FirebaseMessaging.onMessage.listen((RemoteMessage message) {
+      print('Received a foreground message: ${message.messageId}');
+      if (message.notification != null) {
+        print('Message Notification: ${message.notification}');
       }
-    } else {
-      // No user is logged in, so move to sign-in screen
-      setState(() {
-        _isLoading = false;
-      });
-    }
+    });
+  }
+
+  void setLocale(Locale locale) async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    await prefs.setString('language', locale.languageCode);
+    setState(() {
+      _locale = locale;
+    });
   }
 
   @override
   Widget build(BuildContext context) {
-    if (_isLoading) {
-      // Show loading indicator while we check the user role
-      return const Scaffold(
-        body: Center(child: CircularProgressIndicator()),
-      );
-    }
-
-    if (_userRole == null) {
-      // User is not logged in, redirect to sign-in screen
-      return const SignInScreen();
-    }
-
-    // Based on the role, navigate to the corresponding screen
-    if (_userRole == 'worker') {
-      return const WorkerHomePage(); // Navigate to worker's home page
-    } else {
-      return  ClientHomePage(); // Navigate to client's home page
-    }
+    return MaterialApp(
+      title: 'Flutter Multi-language',
+      locale: _locale,
+      supportedLocales: const [
+        Locale('en'),
+        Locale('fr'),
+        Locale('ar'),
+      ],
+      localizationsDelegates: const [
+        AppLocalizations.delegate,
+        GlobalMaterialLocalizations.delegate,
+        GlobalWidgetsLocalizations.delegate,
+        GlobalCupertinoLocalizations.delegate,
+      ],
+      home: SignInScreen(setLocale), // Your sign-in screen
+    );
   }
 }

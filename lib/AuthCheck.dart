@@ -4,6 +4,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'worker_home.dart';
 import 'client_home.dart';
 import 'sign_in.dart';
+import 'main.dart'; // ✅ Import MyApp to access setLocale
 
 class AuthCheck extends StatelessWidget {
   const AuthCheck({super.key});
@@ -41,13 +42,20 @@ class AuthCheck extends StatelessWidget {
                 }
               }
 
-              return const SignInScreen();  // Default to sign-in if no role is found
+              // ❌ OLD (Incorrect)
+              // return const SignInScreen();
+
+              // ✅ FIXED: Pass the locale function
+              return SignInScreen(MyApp.of(context).setLocale);
             },
           );
         }
 
-        // If user is not logged in, navigate to the sign-in screen
-        return const SignInScreen();
+        // ❌ OLD (Incorrect)
+        // return const SignInScreen();
+
+        // ✅ FIXED: Pass the locale function
+        return SignInScreen(MyApp.of(context).setLocale);
       },
     );
   }

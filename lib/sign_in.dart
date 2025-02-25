@@ -4,10 +4,12 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'client_home.dart';
 import 'worker_home.dart';
 import 'role_selection.dart';
-import 'sign_up.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'l10n/app_localizations.dart';
 
 class SignInScreen extends StatefulWidget {
-  const SignInScreen({super.key});
+  final Function(Locale) setLocale; // Function to change language
+  const SignInScreen(this.setLocale, {super.key});
 
   @override
   State<SignInScreen> createState() => _SignInScreenState();
@@ -31,31 +33,32 @@ class _SignInScreenState extends State<SignInScreen> {
 
       User? user = userCredential.user;
       if (user != null) {
-        // Fetch user's role from Firestore
+        // Récupérer le rôle de l'utilisateur depuis Firestore
         DocumentSnapshot userDoc = await FirebaseFirestore.instance.collection('users').doc(user.uid).get();
 
         if (userDoc.exists) {
-          String role = userDoc['role']; // Get the user's role
+          String role = userDoc['role']; // Obtenir le rôle de l'utilisateur
 
-          // Navigate based on role
+          // Navigation en fonction du rôle
           if (role == 'client') {
             Navigator.pushReplacement(
               context,
-              MaterialPageRoute(builder: (context) =>  ClientHomePage()),
+              MaterialPageRoute(builder: (context) => ClientHomePage()),
             );
           } else if (role == 'worker') {
             Navigator.pushReplacement(
               context,
               MaterialPageRoute(builder: (context) => const WorkerHomePage()),
+
             );
           } else {
             ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('Role not recognized')),
+              const SnackBar(content: Text('Rôle non reconnu')),
             );
           }
         } else {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('User data not found')),
+            const SnackBar(content: Text('Utilisateur non trouvé')),
           );
         }
       }
@@ -72,15 +75,22 @@ class _SignInScreenState extends State<SignInScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text(
-          'Sign In',
-          style: TextStyle(
-            fontSize: 24,
-            fontWeight: FontWeight.bold,
-            color: Colors.white,
-          ),
-        ),
         backgroundColor: Colors.red[800],
+        actions: [
+          PopupMenuButton<Locale>(
+            icon: const Icon(Icons.language, color: Colors.white), // 🌍 Language Icon
+            onSelected: (Locale locale) async {
+              SharedPreferences prefs = await SharedPreferences.getInstance();
+              await prefs.setString('language', locale.languageCode);
+              widget.setLocale(locale);
+            },
+            itemBuilder: (BuildContext context) => <PopupMenuEntry<Locale>>[
+              PopupMenuItem(value: const Locale('fr'), child: const Text('Français')),
+              PopupMenuItem(value: const Locale('en'), child: const Text('English')),
+              PopupMenuItem(value: const Locale('ar'), child: const Text('العربية')),
+            ],
+          ),
+        ],
       ),
       body: Padding(
         padding: const EdgeInsets.all(8.0),
@@ -99,15 +109,15 @@ class _SignInScreenState extends State<SignInScreen> {
                 controller: emailController,
                 validator: (value) {
                   if (value == null || value.isEmpty) {
-                    return 'Email is Required';
+                    return AppLocalizations.of(context).translate('email_required');
                   }
                   if (!value.contains('@')) {
-                    return 'Email is not Valid';
+                    return AppLocalizations.of(context).translate('invalid_email');
                   }
                   return null;
                 },
                 decoration: InputDecoration(
-                  label: const Text('Email'),
+                  label: Text(AppLocalizations.of(context).translate('email')),
                   prefixIcon: const Icon(Icons.email, color: Colors.red),
                   enabledBorder: OutlineInputBorder(
                       borderSide: BorderSide(color: Colors.red.shade800)),
@@ -121,12 +131,12 @@ class _SignInScreenState extends State<SignInScreen> {
                 obscureText: true,
                 validator: (value) {
                   if (value == null || value.isEmpty) {
-                    return 'Password is Required';
+                    return AppLocalizations.of(context).translate('password_required');
                   }
                   return null;
                 },
                 decoration: InputDecoration(
-                  label: const Text('Password'),
+                  label: Text(AppLocalizations.of(context).translate('password')),
                   prefixIcon: const Icon(Icons.lock, color: Colors.red),
                   enabledBorder: OutlineInputBorder(
                       borderSide: BorderSide(color: Colors.red.shade800)),
@@ -148,26 +158,27 @@ class _SignInScreenState extends State<SignInScreen> {
                       _loginUser(context);
                     }
                   },
-                  child: const Text(
-                    'Sign In',
-                    style: TextStyle(color: Colors.white),
+                  child: Text(
+                    AppLocalizations.of(context).translate('sign_in'),
+                    style: const TextStyle(color: Colors.white),
                   ),
                 ),
               ),
               const SizedBox(height: 20),
-              // Sign Up button
-              TextButton(
-                onPressed: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => RoleSelectionScreen(),
-                    ),
-                  );
-                },
-                child: const Text(
-                  'Don\'t have an account? Sign Up',
-                  style: TextStyle(fontSize: 16, color: Colors.red),
+              Center (
+                child: TextButton(
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => RoleSelectionScreen(),
+                      ),
+                    );
+                  },
+                  child: Text(
+                    AppLocalizations.of(context).translate('no_account'),
+                    style: const TextStyle(fontSize: 16, color: Colors.red),
+                  ),
                 ),
               ),
             ],

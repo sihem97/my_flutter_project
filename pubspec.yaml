@@ -18,6 +18,7 @@ dependencies:
     sdk: flutter
   intl: ^0.19.0 # Corrected placement
   uuid: ^3.0.7 # For generating unique IDs
+  provider: ^6.1.2
   cupertino_icons: ^1.0.8
   firebase_core: ^3.9.0 # Added Firebase Core package
   firebase_auth: ^5.3.4   # Add other Firebase packages as needed
@@ -52,6 +53,10 @@ flutter:
     - assets/peinture.jpg
     - assets/electricity.jpg
     - assets/nettoyage.jpg
+    - assets/lang/en.json
+    - assets/lang/fr.json
+    - assets/lang/ar.json
+    - assets/happy.png
 
 
 flutter_native_splash:
