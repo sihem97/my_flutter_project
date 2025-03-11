@@ -40,12 +40,20 @@ class _OtpScreenState extends State<OtpScreen> {
       });
 
       // Navigate to the appropriate home screen
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(
-          builder: (context) => widget.isClient ? ClientHomePage() : WorkerHomePage(),
-        ),
-      );
+      if (!mounted) return;  // Check if widget is still mounted
+
+      if (widget.isClient) {
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute(builder: (_) => const ClientHomePage()),
+        );
+      } else {
+        // For worker, ensure navigation happens in a separate frame
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          Navigator.of(context).pushReplacement(
+            MaterialPageRoute(builder: (_) => const WorkerHomePage()),
+          );
+        });
+      }
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(AppLocalizations.of(context).translate('invalid_otp'))),

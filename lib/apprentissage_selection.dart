@@ -6,30 +6,14 @@ class EducationLevelSelectionScreen extends StatelessWidget {
   // Mapping of education levels to their corresponding subject translation keys.
   // Use lowercase keys that match the keys in your JSON files.
   final Map<String, List<String>> subjects = {
-    'primaire': [
-      'mathematics',
-      'arabic_language',
-      'physics',
-      'science_nature_life',
-      'french_language'
+    'Primary': [
+      "Mathematics", "Arabic", "Physics", "Natural Sciences", "French"
     ],
-    'cem': [
-      'mathematics',
-      'arabic_language',
-      'physics',
-      'science_nature_life',
-      'french_language',
-      'english_language'
+    'Middle School': [
+      "Mathematics", "Arabic", "Physics", "Natural Sciences", "French", "English"
     ],
-    'lycee': [
-      'mathematics',
-      'arabic_language',
-      'physics',
-      'science_nature_life',
-      'french_language',
-      'english_language',
-      'philosophy',
-      'accounting'
+    'High School': [
+      "Mathematics", "Arabic", "Physics", "Natural Sciences", "French", "English", "Philosophy", "Accounting"
     ],
   };
 
@@ -137,8 +121,8 @@ class EducationLevelSelectionScreen extends StatelessWidget {
           // Option 1: Primaire
           _buildLevelOption(
             context: context,
-            level: 'primaire',
-            subjectList: subjects['primaire']!,
+            level: 'Primary',
+            subjectList: subjects['Primary']!,
             cardColor: Colors.white,
             iconData: Icons.school,
           ),
@@ -146,7 +130,7 @@ class EducationLevelSelectionScreen extends StatelessWidget {
           _buildLevelOption(
             context: context,
             level: 'cem',
-            subjectList: subjects['cem']!,
+            subjectList: subjects['Middle School']!,
             cardColor: Colors.white,
             iconData: Icons.school,
           ),
@@ -154,7 +138,7 @@ class EducationLevelSelectionScreen extends StatelessWidget {
           _buildLevelOption(
             context: context,
             level: 'lycee',
-            subjectList: subjects['lycee']!,
+            subjectList: subjects['High School']!,
             cardColor: Colors.white,
             iconData: Icons.school,
           ),
@@ -190,7 +174,7 @@ class SubjectSelectionScreen extends StatelessWidget {
         itemBuilder: (context, index) {
           final subjectKey = subjects[index];
           return ListTile(
-            title: Text(AppLocalizations.of(context).translate(subjectKey)),
+            title: Text(AppLocalizations.of(context).translate('subjectss.$subjectKey')),
             trailing: const Icon(Icons.arrow_forward_ios),
             onTap: () {
               Navigator.push(

@@ -1,14 +1,13 @@
 import 'dart:math';
-import 'package:firebase_core/firebase_core.dart';
-import 'package:firebase_messaging/firebase_messaging.dart';
+
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'HistoryScreen.dart';
+import 'accepted_reservation.dart';
 import 'main.dart';
-import 'notification_service.dart';
 import 'sign_in.dart';
 import 'worker_profile.dart';
 import 'contact_us.dart';
@@ -17,20 +16,20 @@ import 'pending_confirmations_screen.dart';
 import 'l10n/app_localizations.dart';
 
 class WorkerHomePage extends StatefulWidget {
-  const WorkerHomePage({Key? key}) : super(key: key);
+  const WorkerHomePage({super.key});
 
   @override
   _WorkerHomePageState createState() => _WorkerHomePageState();
 }
 
 class _WorkerHomePageState extends State<WorkerHomePage> {
-  String workerName = "Worker"; // Will be updated from Firestore
-  String workerService = ""; // E.g., "plumbing"
+  String workerName = "Worker"; // Default value, will be updated later
+  String workerService = ""; // This stores the worker's service (e.g., "Plumbing")
+  bool isTeacher = false; // Flag to check if worker is a teacher
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   LatLng? workerPosition;
   GoogleMapController? _mapController;
   Set<Marker> _markers = {};
-
   String _formatTimestamp(DateTime dateTime) {
     return "${dateTime.day}/${dateTime.month}/${dateTime.year} - ${dateTime.hour}:${dateTime.minute}";
   }
@@ -40,13 +39,7 @@ class _WorkerHomePageState extends State<WorkerHomePage> {
     super.initState();
     _fetchWorkerName();
     _fetchWorkerLocation();
-    _fetchWorkerService();
-    _setupNotificationHandling();
-
-    final currentUser = FirebaseAuth.instance.currentUser;
-    if (currentUser != null) {
-      NotificationService.saveWorkerToken(currentUser.uid);
-    }
+    _fetchWorkerService(); // Fetch the worker's service
   }
 
   // Fetch the worker's name
@@ -56,8 +49,7 @@ class _WorkerHomePageState extends State<WorkerHomePage> {
       final doc = await _firestore.collection('users').doc(user.uid).get();
       if (doc.exists && doc.data() != null) {
         setState(() {
-          workerName = doc.data()!['name'] ??
-              AppLocalizations.of(context).translate('worker');
+          workerName = doc.data()!['name'] ?? AppLocalizations.of(context).translate('worker');
         });
       }
     }
@@ -98,7 +90,11 @@ class _WorkerHomePageState extends State<WorkerHomePage> {
       if (doc.exists && doc.data() != null) {
         setState(() {
           workerService = doc.data()!['service'] ?? "";
-          print("Worker service fetched: $workerService"); // Debug log
+          // Check if worker is a teacher
+          isTeacher = workerService.toLowerCase() == "tutoring" ||
+              workerService.toLowerCase() == "teacher" ||
+              workerService.toLowerCase() == "teaching";
+          print("Worker service fetched: $workerService, isTeacher: $isTeacher"); // Debug log
         });
       }
     }
@@ -114,32 +110,71 @@ class _WorkerHomePageState extends State<WorkerHomePage> {
             markerId: const MarkerId("worker"),
             position: workerPosition!,
             infoWindow: InfoWindow(
-                title:
-                AppLocalizations.of(context).translate('your_location')),
-            icon:
-            BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueBlue),
+                title: AppLocalizations.of(context).translate('your_location')),
+            icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueBlue),
           ),
         );
       });
     }
   }
 
-  // Show a dialog for the worker to submit a bid
+  // Accept reservation for teachers
+  Future<void> _acceptReservation(String reservationId) async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return;
+
+    try {
+      // Update reservation status to accepted
+      await _firestore.collection('reservations').doc(reservationId).update({
+        'status': 'accepted',
+      });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(AppLocalizations.of(context).translate('reservation_accepted'))),
+      );
+    } catch (e) {
+      print("Error accepting reservation: $e");
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(AppLocalizations.of(context).translate('error_accepting_reservation'))),
+      );
+    }
+  }
+
+  // Decline reservation for teachers
+  Future<void> _declineReservation(String reservationId) async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return;
+
+    try {
+      // Update reservation status to declined
+      await _firestore.collection('reservations').doc(reservationId).update({
+        'status': 'declined',
+      });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(AppLocalizations.of(context).translate('reservation_declined') ?? 'Reservation declined')),
+      );
+    } catch (e) {
+      print("Error declining reservation: $e");
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(AppLocalizations.of(context).translate('error_declining_reservation') ?? 'Error declining reservation')),
+      );
+    }
+  }
+
+  // Show a dialog for the worker to submit a bid (for non-teachers)
   void _showBidDialog(String requestId) {
     TextEditingController priceController = TextEditingController();
     showDialog(
       context: context,
       builder: (context) {
         return AlertDialog(
-          title:
-          Text(AppLocalizations.of(context).translate('your_bid')),
+          title: Text(AppLocalizations.of(context).translate('your_bid')),
           content: TextField(
             controller: priceController,
             keyboardType: TextInputType.number,
             decoration: InputDecoration(
-              labelText: AppLocalizations.of(context)
-                  .translate('enter_your_price'),
-            ),
+                labelText: AppLocalizations.of(context).translate('enter_your_price')),
           ),
           actions: [
             TextButton(
@@ -168,7 +203,7 @@ class _WorkerHomePageState extends State<WorkerHomePage> {
     );
   }
 
-  // Submit a bid for a request
+  // Submit a bid for a request (for non-teachers)
   Future<void> _submitBid(String requestId, double price) async {
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) return;
@@ -178,13 +213,12 @@ class _WorkerHomePageState extends State<WorkerHomePage> {
       if (!requestDoc.exists) return;
       String? userId = requestDoc['userId'];
       if (userId == null) return;
-      if (workerName ==
-          AppLocalizations.of(context).translate('worker')) {
+      if (workerName == AppLocalizations.of(context).translate('worker')) {
         final workerDoc =
         await _firestore.collection('users').doc(user.uid).get();
         if (workerDoc.exists && workerDoc.data() != null) {
-          workerName = workerDoc.data()!['name'] ??
-              AppLocalizations.of(context).translate('worker');
+          workerName =
+              workerDoc.data()!['name'] ?? AppLocalizations.of(context).translate('worker');
         }
       }
       await _firestore.collection('bids').add({
@@ -198,59 +232,21 @@ class _WorkerHomePageState extends State<WorkerHomePage> {
       });
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-            content: Text(AppLocalizations.of(context)
-                .translate('bid_submitted_successfully'))),
+            content: Text(AppLocalizations.of(context).translate('bid_submitted_successfully'))),
       );
     } catch (e) {
       print("Error submitting bid: $e");
     }
   }
-  void _setupNotificationHandling() {
-    // Handle foreground notifications
-    FirebaseMessaging.onMessage.listen((RemoteMessage message) {
-      print("Received foreground message: ${message.notification?.title}");
 
-      // Show a dialog or snackbar when a new request comes in
-      if (message.data['type'] == 'new_request') {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              AppLocalizations.of(context).translate('new_request_available'),
-            ),
-            action: SnackBarAction(
-              label: AppLocalizations.of(context).translate('view'),
-              onPressed: () {
-                // Refresh the list to show the new request
-                setState(() {});
-              },
-            ),
-            duration: const Duration(seconds: 5),
-          ),
-        );
-      }
-    });
-
-    // Handle when app is in background and user taps on notification
-    FirebaseMessaging.onMessageOpenedApp.listen((RemoteMessage message) {
-      print("Opened app from background message: ${message.notification?.title}");
-      if (message.data['type'] == 'new_request') {
-        // Refresh the list to show the new request
-        setState(() {});
-      }
-    });
-  }
-
-  double _calculateDistance(
-      double lat1, double lon1, double lat2, double lon2) {
+  double _calculateDistance(double lat1, double lon1, double lat2, double lon2) {
     const int R = 6371; // Earth's radius in km
     double dLat = (lat2 - lat1) * (pi / 180);
     double dLon = (lon2 - lon1) * (pi / 180);
 
     double a = sin(dLat / 2) * sin(dLat / 2) +
-        cos(lat1 * (pi / 180)) *
-            cos(lat2 * (pi / 180)) *
-            sin(dLon / 2) *
-            sin(dLon / 2);
+        cos(lat1 * (pi / 180)) * cos(lat2 * (pi / 180)) *
+            sin(dLon / 2) * sin(dLon / 2);
 
     double c = 2 * atan2(sqrt(a), sqrt(1 - a));
     return R * c; // Distance in km
@@ -268,9 +264,12 @@ class _WorkerHomePageState extends State<WorkerHomePage> {
         body: const Center(child: CircularProgressIndicator()),
       );
     }
+
     return Scaffold(
       appBar: AppBar(
-        title: Text(AppLocalizations.of(context).translate('home')),
+        title: Text(isTeacher
+            ? AppLocalizations.of(context).translate('home') ?? 'Teacher Home'
+            : AppLocalizations.of(context).translate('home')),
         backgroundColor: Colors.red.shade800,
       ),
       drawer: Drawer(
@@ -294,56 +293,60 @@ class _WorkerHomePageState extends State<WorkerHomePage> {
               onTap: () {
                 Navigator.push(
                   context,
-                  MaterialPageRoute(
-                      builder: (context) => const WorkerProfileScreen()),
+                  MaterialPageRoute(builder: (context) => const WorkerProfileScreen()),
                 );
               },
             ),
-            ListTile(
-              leading: const Icon(Icons.assignment_turned_in),
-              title: Text(AppLocalizations.of(context)
-                  .translate('accepted_requests')),
-              onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                      builder: (context) => const AcceptedRequestsScreen()),
-                );
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.hourglass_bottom),
-              title: Text(AppLocalizations.of(context)
-                  .translate('pending_confirmations')),
-              onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                      builder: (context) =>
-                      const PendingConfirmationsScreen()),
-                );
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.history),
-              title: Text(AppLocalizations.of(context).translate('history')),
-              onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                      builder: (context) => const HistoryScreen()),
-                );
-              },
-            ),
+            if (isTeacher) // Show different menu items for teachers
+              ListTile(
+                leading: const Icon(Icons.calendar_today),
+                title: Text(AppLocalizations.of(context).translate('accepted_reservations') ?? 'Accepted Reservations'),
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => const AcceptedReservationsScreen()),
+                  );
+                },
+              )
+            else ... [ // Menu items for regular workers
+              ListTile(
+                leading: const Icon(Icons.assignment_turned_in),
+                title: Text(AppLocalizations.of(context).translate('accepted_requests')),
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => const AcceptedRequestsScreen()),
+                  );
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.hourglass_bottom),
+                title: Text(AppLocalizations.of(context).translate('pending_confirmations')),
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => const PendingConfirmationsScreen()),
+                  );
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.history),
+                title: Text(AppLocalizations.of(context).translate('history')),
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => const HistoryScreen()),
+                  );
+                },
+              ),
+            ],
             ListTile(
               leading: const Icon(Icons.contact_mail),
-              title:
-              Text(AppLocalizations.of(context).translate('contact_us')),
+              title: Text(AppLocalizations.of(context).translate('contact_us')),
               onTap: () {
                 Navigator.push(
                   context,
-                  MaterialPageRoute(
-                      builder: (context) => const ContactUsScreen()),
+                  MaterialPageRoute(builder: (context) => const ContactUsScreen()),
                 );
               },
             ),
@@ -354,191 +357,223 @@ class _WorkerHomePageState extends State<WorkerHomePage> {
                 await FirebaseAuth.instance.signOut();
                 Navigator.pushReplacement(
                   context,
-                  MaterialPageRoute(
-                      builder: (context) =>
-                          SignInScreen(MyApp.of(context).setLocale)),
+                  MaterialPageRoute(builder: (context) => SignInScreen(MyApp.of(context).setLocale)),
                 );
               },
             ),
           ],
         ),
       ),
-      body: StreamBuilder<QuerySnapshot>(
-        stream: _firestore
-            .collection('requests')
-            .where('status', isEqualTo: 'pending')
-            .where('service', isEqualTo: workerService) // Filter by worker's service
-            .snapshots(),
-        builder: (context, snapshot) {
-          if (!snapshot.hasData) {
-            return const Center(child: CircularProgressIndicator());
-          }
-          print("Fetched Requests: ${snapshot.data!.docs}");
-          return ListView.builder(
-            itemCount: snapshot.data!.docs.length,
-            itemBuilder: (context, index) {
-              final request = snapshot.data!.docs[index];
-              final String userId = request['userId']; // Get client ID
+      body: isTeacher
+          ? _buildTeacherView() // Special view for teachers showing reservations
+          : _buildServiceWorkerView(), // Regular view for other service workers
+    );
+  }
 
-              return FutureBuilder<DocumentSnapshot>(
-                future:
-                _firestore.collection('users').doc(userId).get(), // Fetch client details
-                builder: (context, clientSnapshot) {
-                  if (!clientSnapshot.hasData) {
-                    return const Center(child: CircularProgressIndicator());
-                  }
+  // View for teachers showing reservations
+  Widget _buildTeacherView() {
+    final user = FirebaseAuth.instance.currentUser;
 
-                  final clientData = clientSnapshot.data!;
-                  final String clientName =
-                      clientData['fullName'] ?? 'Unknown';
-                  final Map<String, dynamic>? clientLocation =
-                  request['location'];
-                  final Timestamp? timestamp = request['timestamp'];
-                  DateTime requestTime = timestamp != null
-                      ? timestamp.toDate()
-                      : DateTime.now();
+    return StreamBuilder<QuerySnapshot>(
+      stream: _firestore
+          .collection('reservations')
+          .where('status', isEqualTo: 'pending')
+          .where('teacherId', isEqualTo: user?.uid)
+          .snapshots(),
+      builder: (context, snapshot) {
+        if (!snapshot.hasData) {
+          return const Center(child: CircularProgressIndicator());
+        }
 
-                  double distance = 0.0;
-                  final Map<String, dynamic> requestData =
-                  request.data() as Map<String, dynamic>;
+        if (snapshot.data!.docs.isEmpty) {
+          return Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(Icons.notifications_none, size: 64, color: Colors.grey),
+                SizedBox(height: 16),
+                Text(
+                  AppLocalizations.of(context).translate('no_pending_reservations') ?? 'No pending reservations',
+                  style: TextStyle(fontSize: 18),
+                ),
+              ],
+            ),
+          );
+        }
 
-                  if (requestData.containsKey('location') &&
-                      workerPosition != null) {
-                    final clientLocation = requestData['location'];
-                    if (clientLocation.containsKey('lat') &&
-                        clientLocation.containsKey('lng')) {
-                      distance = _calculateDistance(
-                        workerPosition!.latitude,
-                        workerPosition!.longitude,
-                        clientLocation['lat'],
-                        clientLocation['lng'],
-                      );
-                    }
-                  }
+        return ListView.builder(
+          itemCount: snapshot.data!.docs.length,
+          itemBuilder: (context, index) {
+            final reservation = snapshot.data!.docs[index];
+            final String clientId = reservation['clientId'];
+            final Timestamp? timestamp = reservation['timestamp'];
+            DateTime reservationTime = timestamp != null ? timestamp.toDate() : DateTime.now();
 
-                  return Card(
-                    margin: const EdgeInsets.all(10),
-                    elevation: 4,
+            return FutureBuilder<DocumentSnapshot>(
+              future: _firestore.collection('users').doc(clientId).get(),
+              builder: (context, clientSnapshot) {
+                if (!clientSnapshot.hasData) {
+                  return const Card(
+                    margin: EdgeInsets.all(10),
+                    child: Padding(
+                      padding: EdgeInsets.all(16.0),
+                      child: Center(child: CircularProgressIndicator()),
+                    ),
+                  );
+                }
+
+                final clientData = clientSnapshot.data!.data() as Map<String, dynamic>?;
+                final String clientName = clientData?['fullName'] ?? clientData?['name'] ?? 'Unknown';
+
+                return Card(
+                  margin: const EdgeInsets.all(10),
+                  elevation: 4,
+                  child: Padding(
+                    padding: const EdgeInsets.all(12.0),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        ListTile(
-                          title: Text(
-                            "${AppLocalizations.of(context).translate('client')}: $clientName",
-                          ),
-                          subtitle: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                "${AppLocalizations.of(context).translate('description')}: ${request['description']}",
-                              ),
-                              Text(
-                                "${AppLocalizations.of(context).translate('distance')}: ${distance.toStringAsFixed(2)} km",
-                              ),
-                              Text(
-                                "${AppLocalizations.of(context).translate('request_time')}: ${_formatTimestamp(requestTime)}",
-                              ),
-                            ],
-                          ),
-                          trailing: ElevatedButton(
-                            onPressed: () => _showBidDialog(request.id),
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.red.shade800,
-                            ),
-                            child: Text(
-                              AppLocalizations.of(context).translate('bid'),
-                              style: const TextStyle(color: Colors.white),
-                            ),
-                          ),
+                        Text(
+                          "${AppLocalizations.of(context).translate('student') ?? 'Student'}: $clientName",
+                          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                         ),
-                        // Display images attached to the request (if any)
-                        if (requestData.containsKey('images') &&
-                            (requestData['images'] as List).isNotEmpty)
-                          Container(
-                            height: 100,
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 16, vertical: 8),
-                            child: ListView.builder(
-                              scrollDirection: Axis.horizontal,
-                              itemCount:
-                              (requestData['images'] as List).length,
-                              itemBuilder: (context, imageIndex) {
-                                final imageUrl =
-                                (requestData['images'] as List)[imageIndex];
-                                return GestureDetector(
-                                  onTap: () {
-                                    Navigator.push(
-                                      context,
-                                      MaterialPageRoute(
-                                        builder: (context) => ImageGalleryPage(
-                                          imageUrls: List<String>.from(
-                                              requestData['images']),
-                                          initialIndex: imageIndex,
-                                        ),
-                                      ),
-                                    );
-                                  },
-                                  child: Container(
-                                    margin: const EdgeInsets.only(right: 8),
-                                    width: 100,
-                                    height: 100,
-                                    child: ClipRRect(
-                                      borderRadius: BorderRadius.circular(8),
-                                      child: Image.network(
-                                        imageUrl,
-                                        fit: BoxFit.cover,
-                                      ),
-                                    ),
-                                  ),
-                                );
-                              },
+                        SizedBox(height: 8),
+                        Text(
+                          "${AppLocalizations.of(context).translate('reservation_time') ?? 'Reservation Time'}: ${_formatTimestamp(reservationTime)}",
+                          style: TextStyle(fontSize: 16, color: Colors.grey[700]),
+                        ),
+                        SizedBox(height: 16),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.end,
+                          children: [
+                            OutlinedButton(
+                              onPressed: () => _declineReservation(reservation.id),
+                              style: OutlinedButton.styleFrom(
+                                foregroundColor: Colors.red.shade800,
+                                side: BorderSide(color: Colors.red.shade800),
+                              ),
+                              child: Text(
+                                AppLocalizations.of(context).translate('decline') ?? 'Decline',
+                              ),
                             ),
-                          ),
+                            SizedBox(width: 12),
+                            ElevatedButton(
+                              onPressed: () => _acceptReservation(reservation.id),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Colors.red.shade800,
+                                foregroundColor: Colors.white,
+                              ),
+                              child: Text(
+                                AppLocalizations.of(context).translate('accept') ?? 'Accept',
+                              ),
+                            ),
+                          ],
+                        ),
                       ],
                     ),
-                  );
-                },
-              );
-            },
-          );
-        },
-      ),
+                  ),
+                );
+              },
+            );
+          },
+        );
+      },
     );
   }
-}
 
-/// ImageGalleryPage displays a list of images in a swipable PageView.
-/// The initialIndex determines which image is shown first.
-class ImageGalleryPage extends StatelessWidget {
-  final List<String> imageUrls;
-  final int initialIndex;
+  // Regular view for other service workers
+  Widget _buildServiceWorkerView() {
+    return StreamBuilder<QuerySnapshot>(
+      stream: _firestore
+          .collection('requests')
+          .where('status', isEqualTo: 'pending')
+          .where('service', isEqualTo: workerService)
+          .snapshots(),
+      builder: (context, snapshot) {
+        if (!snapshot.hasData) {
+          return const Center(child: CircularProgressIndicator());
+        }
 
-  const ImageGalleryPage(
-      {Key? key, required this.imageUrls, required this.initialIndex})
-      : super(key: key);
-
-  @override
-  Widget build(BuildContext context) {
-    PageController controller = PageController(initialPage: initialIndex);
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Image Gallery'),
-        backgroundColor: Colors.red.shade800,
-      ),
-      body: PageView.builder(
-        controller: controller,
-        itemCount: imageUrls.length,
-        itemBuilder: (context, index) {
+        if (snapshot.data!.docs.isEmpty) {
           return Center(
-            child: InteractiveViewer(
-              child: Image.network(
-                imageUrls[index],
-                fit: BoxFit.contain,
-              ),
+            child: Text(
+              AppLocalizations.of(context).translate('no_pending_requests'),
+              style: TextStyle(fontSize: 18),
             ),
           );
-        },
-      ),
+        }
+
+        return ListView.builder(
+          itemCount: snapshot.data!.docs.length,
+          itemBuilder: (context, index) {
+            final request = snapshot.data!.docs[index];
+            final String userId = request['userId'];
+            final Timestamp? timestamp = request['timestamp'];
+            DateTime requestTime = timestamp != null ? timestamp.toDate() : DateTime.now();
+
+            return FutureBuilder<DocumentSnapshot>(
+              future: _firestore.collection('users').doc(userId).get(),
+              builder: (context, clientSnapshot) {
+                if (!clientSnapshot.hasData) {
+                  return const Center(child: CircularProgressIndicator());
+                }
+
+                final clientData = clientSnapshot.data!;
+                final String clientName = clientData['fullName'] ?? 'Unknown';
+
+                double distance = 0.0;
+                final Map<String, dynamic> requestData = request.data() as Map<String, dynamic>;
+
+                if (requestData.containsKey('location') && workerPosition != null) {
+                  final clientLocation = requestData['location'];
+                  if (clientLocation.containsKey('lat') && clientLocation.containsKey('lng')) {
+                    distance = _calculateDistance(
+                      workerPosition!.latitude,
+                      workerPosition!.longitude,
+                      clientLocation['lat'],
+                      clientLocation['lng'],
+                    );
+                  }
+                }
+
+                return Card(
+                  margin: const EdgeInsets.all(10),
+                  elevation: 4,
+                  child: ListTile(
+                    title: Text(
+                      "${AppLocalizations.of(context).translate('client')}: $clientName",
+                    ),
+                    subtitle: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          "${AppLocalizations.of(context).translate('description')}: ${request['description']}",
+                        ),
+                        Text(
+                          "${AppLocalizations.of(context).translate('distance')}: ${distance.toStringAsFixed(2)} km",
+                        ),
+                        Text(
+                          "${AppLocalizations.of(context).translate('request_time')}: ${_formatTimestamp(requestTime)}",
+                        ),
+                      ],
+                    ),
+                    trailing: ElevatedButton(
+                      onPressed: () => _showBidDialog(request.id),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.red.shade800,
+                      ),
+                      child: Text(
+                        AppLocalizations.of(context).translate('bid'),
+                        style: const TextStyle(color: Colors.white),
+                      ),
+                    ),
+                  ),
+                );
+              },
+            );
+          },
+        );
+      },
     );
   }
 }

@@ -34,6 +34,7 @@ class _WorkerSignUpScreenState extends State<WorkerSignUpScreen> {
   File? policeRecord;
   bool isLoading = false;
   bool acceptedTerms = false;
+  bool _submitted = false; // Tracks whether the user attempted to sign up
 
   @override
   void initState() {
@@ -113,19 +114,26 @@ class _WorkerSignUpScreenState extends State<WorkerSignUpScreen> {
         });
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-              content: Text(AppLocalizations.of(context).translate('image_selected_success'))),
+            content: Text(AppLocalizations.of(context).translate('image_selected_success')),
+          ),
         );
       }
     } catch (e) {
       print('Error picking image: $e');
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-            content: Text('${AppLocalizations.of(context).translate('image_selection_error')}: $e')),
+          content: Text('${AppLocalizations.of(context).translate('image_selection_error')}: $e'),
+        ),
       );
     }
   }
 
   Future<void> signUp({required String email, required String password}) async {
+    // Mark that the user has attempted to submit
+    setState(() {
+      _submitted = true;
+    });
+
     if (!formKey.currentState!.validate()) return;
     if (selectedSubscription == null) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -162,6 +170,10 @@ class _WorkerSignUpScreenState extends State<WorkerSignUpScreen> {
       final String? idCardUrl = await uploadImageToFirebase(idCard, 'id_cards', userId);
       final String? policeRecordUrl = await uploadImageToFirebase(policeRecord, 'police_records', userId);
 
+      // Store the education level and subject keys
+      final String? educationLevelKey = selectedEducationLevel;
+      final String? subjectKey = selectedSubject;
+
       await FirebaseFirestore.instance.collection('users').doc(userId).set({
         'role': 'worker',
         'email': email,
@@ -170,8 +182,8 @@ class _WorkerSignUpScreenState extends State<WorkerSignUpScreen> {
         'birthday': birthdayController.text.trim(),
         'gender': selectedGender,
         'service': selectedService,
-        'educationLevel': selectedEducationLevel,
-        'subject': selectedSubject,
+        'educationLevel': educationLevelKey,
+        'subject': subjectKey,
         'profileImageUrl': profileImageUrl ?? '',
         'idCardUrl': idCardUrl ?? '',
         'policeRecordUrl': policeRecordUrl ?? '',
@@ -209,7 +221,6 @@ class _WorkerSignUpScreenState extends State<WorkerSignUpScreen> {
       setState(() => isLoading = false);
     }
   }
-
 
   Future<void> _selectDate(BuildContext context) async {
     final DateTime today = DateTime.now();
@@ -345,12 +356,20 @@ class _WorkerSignUpScreenState extends State<WorkerSignUpScreen> {
                       borderSide: BorderSide(color: Colors.red.shade800),
                     ),
                   ),
-                  items: educationLevels.keys.map((String level) {
-                    return DropdownMenuItem<String>(
-                      value: level,
-                      child: Text(level), // Display the education level directly
-                    );
-                  }).toList(),
+                  items: [
+                    DropdownMenuItem<String>(
+                      value: "Primary",
+                      child: Text(AppLocalizations.of(context).translate('primaire')),
+                    ),
+                    DropdownMenuItem<String>(
+                      value: "Middle School",
+                      child: Text(AppLocalizations.of(context).translate('cem')),
+                    ),
+                    DropdownMenuItem<String>(
+                      value: "High School",
+                      child: Text(AppLocalizations.of(context).translate('lycee')),
+                    ),
+                  ],
                   onChanged: (String? newValue) {
                     setState(() {
                       selectedEducationLevel = newValue;
@@ -373,9 +392,9 @@ class _WorkerSignUpScreenState extends State<WorkerSignUpScreen> {
                       ),
                     ),
                     items: educationLevels[selectedEducationLevel]!
-                        .map((subject) => DropdownMenuItem(
-                      value: subject,
-                      child: Text(subject), // Display the subject directly
+                        .map((subjectKey) => DropdownMenuItem(
+                      value: subjectKey,
+                      child: Text(AppLocalizations.of(context).translate('subjectss.$subjectKey')),
                     ))
                         .toList(),
                     onChanged: (value) => setState(() => selectedSubject = value),
@@ -428,29 +447,44 @@ class _WorkerSignUpScreenState extends State<WorkerSignUpScreen> {
                 ),
               ),
               const SizedBox(height: 20),
+              // Profile image upload
               ElevatedButton(
-                onPressed: () => pickImage(ImageSource.gallery, (file) => profileImage = file),
+                onPressed: () => pickImage(ImageSource.gallery, (file) {
+                  profileImage = file;
+                }),
                 child: Text(AppLocalizations.of(context).translate('upload_profile_image')),
               ),
               if (profileImage != null)
                 Text(AppLocalizations.of(context).translate('profile_image_selected'),
-                    style: const TextStyle(color: Colors.green)),
+                    style: const TextStyle(color: Colors.green))
+              else if (_submitted)
+                const Text("Profile image is required.", style: TextStyle(color: Colors.red)),
               const SizedBox(height: 8),
+              // ID card upload
               ElevatedButton(
-                onPressed: () => pickImage(ImageSource.gallery, (file) => idCard = file),
+                onPressed: () => pickImage(ImageSource.gallery, (file) {
+                  idCard = file;
+                }),
                 child: Text(AppLocalizations.of(context).translate('upload_id_card')),
               ),
               if (idCard != null)
                 Text(AppLocalizations.of(context).translate('id_card_selected'),
-                    style: const TextStyle(color: Colors.green)),
+                    style: const TextStyle(color: Colors.green))
+              else if (_submitted)
+                const Text("ID card is required.", style: TextStyle(color: Colors.red)),
               const SizedBox(height: 8),
+              // Police record upload
               ElevatedButton(
-                onPressed: () => pickImage(ImageSource.gallery, (file) => policeRecord = file),
+                onPressed: () => pickImage(ImageSource.gallery, (file) {
+                  policeRecord = file;
+                }),
                 child: Text(AppLocalizations.of(context).translate('upload_police_record')),
               ),
               if (policeRecord != null)
                 Text(AppLocalizations.of(context).translate('police_record_selected'),
-                    style: const TextStyle(color: Colors.green)),
+                    style: const TextStyle(color: Colors.green))
+              else if (_submitted)
+                const Text("Police record is required.", style: TextStyle(color: Colors.red)),
               const SizedBox(height: 20),
               Row(
                 crossAxisAlignment: CrossAxisAlignment.center,

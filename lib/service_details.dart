@@ -6,14 +6,13 @@ import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'dart:math';
 import 'package:image_picker/image_picker.dart'; // For image picking
 import 'dart:io'; // For file handling
-import 'package:firebase_storage/firebase_storage.dart' as firebase_storage; // For storage
 import 'l10n/app_localizations.dart';
-import 'my_requests.dart';
-import 'notification_service.dart'; // Import localization
+import 'my_requests.dart'; // Import localization
 
 class ServiceDetailsScreen extends StatefulWidget {
   // IMPORTANT: Ensure that the 'service' passed here is the raw key,
-  // not the translated value.
+  // not the translated value. For example, pass "Plumbing" rather than
+  // AppLocalizations.of(context).translate('services.Plumbing').
   final String service;
 
   const ServiceDetailsScreen({required this.service});
@@ -30,12 +29,6 @@ class _ServiceDetailsScreenState extends State<ServiceDetailsScreen> {
   Set<Marker> _markers = {};
   List<File> _images = []; // To store selected images
   double _selectedRadius = 5; // Default radius in kilometers
-
-  @override
-  void initState() {
-    super.initState();
-    _fetchClientLocation();
-  }
 
   void _fetchClientLocation() async {
     bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
@@ -96,7 +89,7 @@ class _ServiceDetailsScreenState extends State<ServiceDetailsScreen> {
     QuerySnapshot workersSnapshot = await _firestore
         .collection('users')
         .where('role', isEqualTo: 'worker')
-        .where('service', isEqualTo: widget.service) // Compare raw key!
+        .where('service', isEqualTo: widget.service) // This compares to the raw key!
         .get();
 
     Set<Marker> markers = {};
@@ -126,16 +119,14 @@ class _ServiceDetailsScreenState extends State<ServiceDetailsScreen> {
           markers.add(
             Marker(
               markerId: MarkerId(doc.id),
-              position:
-              LatLng(data['location']['lat'], data['location']['lng']),
+              position: LatLng(data['location']['lat'], data['location']['lng']),
               infoWindow: InfoWindow(
                 title:
                 "${data['name'] ?? AppLocalizations.of(context).translate('worker')}",
                 snippet:
                 "${(distance / 1000).toStringAsFixed(2)} ${AppLocalizations.of(context).translate('km_away')}",
               ),
-              icon:
-              BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueGreen),
+              icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueGreen),
             ),
           );
         }
@@ -165,46 +156,27 @@ class _ServiceDetailsScreenState extends State<ServiceDetailsScreen> {
     return deg * (pi / 180);
   }
 
-  Future<void> _pickImages() async {
+  Future<void> _pickImage() async {
     final ImagePicker _picker = ImagePicker();
-    final List<XFile>? pickedImages = await _picker.pickMultiImage();
-    if (pickedImages != null && pickedImages.isNotEmpty) {
+    final XFile? pickedImage = await _picker.pickImage(source: ImageSource.gallery);
+    if (pickedImage != null) {
       setState(() {
-        _images.addAll(pickedImages.map((xfile) => File(xfile.path)).toList());
+        _images.add(File(pickedImage.path)); // Add the selected image to the list
       });
     }
   }
 
-  // This helper method uploads images to Firebase Storage and returns their download URLs.
-  Future<List<String>> _uploadImages() async {
-    List<String> downloadUrls = [];
-    for (File image in _images) {
-      // Create a unique file name based on the current time.
-      String fileName = DateTime.now().millisecondsSinceEpoch.toString();
-      firebase_storage.Reference ref = firebase_storage.FirebaseStorage.instance
-          .ref()
-          .child("request_images")
-          .child(fileName);
-
-      // Upload the file to Firebase Storage.
-      firebase_storage.UploadTask uploadTask = ref.putFile(image);
-      firebase_storage.TaskSnapshot snapshot =
-      await uploadTask.whenComplete(() => null);
-
-      // Retrieve the download URL.
-      String downloadUrl = await snapshot.ref.getDownloadURL();
-      downloadUrls.add(downloadUrl);
-    }
-    return downloadUrls;
+  @override
+  void initState() {
+    super.initState();
+    _fetchClientLocation();
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text(
-          '${widget.service} - ${AppLocalizations.of(context).translate('details')}',
-        ),
+        title: Text('${widget.service} - ${AppLocalizations.of(context).translate('details')}'),
         backgroundColor: Colors.red[800],
         flexibleSpace: Container(
           decoration: BoxDecoration(
@@ -227,15 +199,11 @@ class _ServiceDetailsScreenState extends State<ServiceDetailsScreen> {
             children: [
               Text(
                 AppLocalizations.of(context).translate('select_radius'),
-                style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.black87),
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.black87),
               ),
               DropdownButton<double>(
                 value: _selectedRadius,
-                items: [1.0, 5.0, 10.0]
-                    .map<DropdownMenuItem<double>>((value) {
+                items: [1.0, 5.0, 10.0].map<DropdownMenuItem<double>>((value) {
                   return DropdownMenuItem<double>(
                     value: value,
                     child: Text('$value ${AppLocalizations.of(context).translate('km')}'),
@@ -291,26 +259,20 @@ class _ServiceDetailsScreenState extends State<ServiceDetailsScreen> {
                 children: [
                   Text(
                     AppLocalizations.of(context).translate('describe_your_issue'),
-                    style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.black87),
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.black87),
                   ),
                   const SizedBox(height: 10),
                   Container(
                     decoration: BoxDecoration(
                       borderRadius: BorderRadius.circular(10),
-                      border: Border.all(
-                          color: Colors.grey.withOpacity(0.5)),
+                      border: Border.all(color: Colors.grey.withOpacity(0.5)),
                     ),
                     child: TextField(
                       controller: _descriptionController,
                       decoration: InputDecoration(
-                        hintText: AppLocalizations.of(context)
-                            .translate('enter_details_about_your_issue'),
+                        hintText: AppLocalizations.of(context).translate('enter_details_about_your_issue'),
                         border: InputBorder.none,
-                        contentPadding: EdgeInsets.symmetric(
-                            horizontal: 12, vertical: 14),
+                        contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 14),
                       ),
                       maxLines: 3,
                       style: const TextStyle(color: Colors.black87),
@@ -319,50 +281,37 @@ class _ServiceDetailsScreenState extends State<ServiceDetailsScreen> {
                   const SizedBox(height: 20),
                   Text(
                     AppLocalizations.of(context).translate('add_pictures'),
-                    style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.black87),
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.black87),
                   ),
                   const SizedBox(height: 10),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       ElevatedButton(
-                        onPressed: _pickImages,
+                        onPressed: _pickImage,
                         style: ElevatedButton.styleFrom(
                           backgroundColor: Colors.red[800],
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(10),
                           ),
-                          padding: const EdgeInsets.symmetric(
-                              vertical: 12, horizontal: 24),
+                          padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 24),
                         ),
                         child: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
                             Icon(Icons.add_a_photo, color: Colors.white),
                             const SizedBox(width: 8),
-                            Text(
-                              AppLocalizations.of(context)
-                                  .translate('add_pictures'),
-                              style: TextStyle(color: Colors.white),
-                            ),
+                            Text(AppLocalizations.of(context).translate('add_pictures'), style: TextStyle(color: Colors.white)),
                           ],
                         ),
                       ),
                       ElevatedButton(
                         onPressed: () async {
-                          if (_descriptionController.text.isNotEmpty &&
-                              clientPosition != null) {
-                            List<String> imageUrls = [];
-                            if (_images.isNotEmpty) {
-                              // Upload selected images and get download URLs.
-                              imageUrls = await _uploadImages();
-                            }
+                          if (_descriptionController.text.isNotEmpty && clientPosition != null) {
                             await _firestore.collection('requests').add({
-                              'userId':
-                              FirebaseAuth.instance.currentUser!.uid,
+                              'userId': FirebaseAuth.instance.currentUser!.uid,
+                              // CHANGE: Use widget.service as the raw key.
+                              // Ensure that when calling ServiceDetailsScreen, you pass a raw value (e.g., "Plumbing")
                               'service': widget.service,
                               'description': _descriptionController.text,
                               'location': {
@@ -370,30 +319,20 @@ class _ServiceDetailsScreenState extends State<ServiceDetailsScreen> {
                                 'lng': clientPosition!.longitude,
                               },
                               'status': 'pending',
-                              'images': imageUrls, // Now contains the uploaded image URLs.
                               'timestamp': FieldValue.serverTimestamp(),
+                              'images': [], // You can upload images to Firebase Storage and store URLs here
                             });
-                            await NotificationService.notifyNearbyWorkers(
-                              widget.service,
-                              clientPosition!.latitude,
-                              clientPosition!.longitude,
-                              _selectedRadius, // Use the selected radius
-                            );
                             ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(
-                                  content: Text(AppLocalizations.of(context)
-                                      .translate('request_sent_successfully'))),
+                              SnackBar(content: Text(AppLocalizations.of(context).translate('request_sent_successfully'))),
                             );
-                            // * Redirect the user to "My Requests" after successful submission *
+                            // ** Redirect the user to "My Requests" after successful submission **
                             Navigator.pushReplacement(
                               context,
                               MaterialPageRoute(builder: (context) => const MyRequestsScreen()),
                             );
                           } else {
                             ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(
-                                  content: Text(AppLocalizations.of(context)
-                                      .translate('fill_all_fields_and_enable_location'))),
+                              SnackBar(content: Text(AppLocalizations.of(context).translate('fill_all_fields_and_enable_location'))),
                             );
                           }
                         },
@@ -402,15 +341,9 @@ class _ServiceDetailsScreenState extends State<ServiceDetailsScreen> {
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(10),
                           ),
-                          padding: const EdgeInsets.symmetric(
-                              vertical: 12, horizontal: 24),
+                          padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 24),
                         ),
-                        child: Text(
-                          AppLocalizations.of(context)
-                              .translate('send_request'),
-                          style:
-                          TextStyle(fontSize: 16, color: Colors.white),
-                        ),
+                        child: Text(AppLocalizations.of(context).translate('send_request'), style: TextStyle(fontSize: 16, color: Colors.white)),
                       ),
                     ],
                   ),
@@ -419,8 +352,7 @@ class _ServiceDetailsScreenState extends State<ServiceDetailsScreen> {
                       height: 100,
                       child: GridView.builder(
                         scrollDirection: Axis.horizontal,
-                        gridDelegate:
-                        const SliverGridDelegateWithFixedCrossAxisCount(
+                        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                           crossAxisCount: 1,
                           mainAxisSpacing: 8,
                           crossAxisSpacing: 8,

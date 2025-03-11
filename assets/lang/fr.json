@@ -147,7 +147,7 @@
   "electricite": "Électricité",
   "details": "Détails",
   "enter_details": "Entrez les détails de votre problème...",
-  "send_request": "Envoyer la demande",
+  "send_request": "Envoyer",
   "request_sent": "Demande envoyée avec succès",
   "no_workers_found": "Aucun travailleur disponible pour ce service à proximité",
   "location_services_disabled": "Les services de localisation sont désactivés.",
@@ -223,28 +223,58 @@
     "1_year": "1 an"
   },
   "education_levels": {
-    "Primaire": ["Mathématiques", "Langue arabe", "Physique", "Sciences de la nature et de la vie", "Langue française"],
-    "CEM": ["Mathématiques", "Langue arabe", "Physique", "Sciences de la nature et de la vie", "Langue française", "Langue anglaise"],
-    "Lycee": ["Mathématiques", "Langue arabe", "Physique", "Sciences de la nature et de la vie", "Langue française", "Langue anglaise", "Philosophie", "Comptabilité"]
+    "Primary": ["Mathematics", "Arabic", "Physics", "Natural Sciences", "French"],
+    "Middle School": ["Mathematics", "Arabic", "Physics", "Natural Sciences", "French", "English"],
+    "High School": ["Mathematics", "Arabic", "Physics", "Natural Sciences", "French", "English", "Philosophy", "Accounting"]
   },
-
+  "subjectss": {
+    "Mathematics": "Mathématiques",
+    "Arabic": "Langue arabe",
+    "Physics": "Physique",
+    "Natural Sciences": "Sciences naturelles",
+    "French": "Langue française",
+    "English": "Langue anglaise",
+    "Philosophy": "Philosophie",
+    "Accounting": "Comptabilité"
+  },
   "contact": "Contacter",
   "reserve": "Réserver",
   "contact_to_reserve": "Contactez l'enseignant pour confirmer sa disponibilité. Une fois d'accord, cliquez sur 'Réserver' pour finaliser la demande.",
   "reservation_successful": "Réservation réussie!",
-  "no_teachers_found": "Aucun enseignant trouvé à proximité. Essayez de choisir une autre matière ou d'augmenter le rayon de recherche.",
+  "no_teachers_found": "Aucun enseignant trouvé à proximité. Essayez de choisir une autre matière.",
   "close": "Fermer",
   "distance": "Distance",
-  "request_time":"Temps",
+  "accepted_reservations": "Réservations acceptées",
+  "please_sign_in": "Veuillez vous connecter",
+  "error_loading_data": "Erreur lors du chargement des données",
+  "no_accepted_reservations": "Aucune réservation acceptée.",
+
+  "notes": "Remarques",
+  "reservation_time": "Heure de réservation",
+  "contact_info": "Informations de contact",
+  "reservation_marked_as_completed": "Réservation marquée comme terminée.",
+  "confirm_cancellation": "Confirmer l'annulation",
+  "cancel_reservation_confirmation": "Voulez-vous vraiment annuler cette réservation ?",
+  "reservation_cancelled": "Réservation annulée",
+
+  "yes": "Oui",
+  "no": "Non",
+
+  "request_time": "Heure",
   "agreed_bid": "Offre convenue",
   "worker_will_call": "Le travailleur vous appellera bientôt.",
   "no_bid_info": "Aucune information sur l'offre disponible",
 
-  "upload_profile_image_error": "Veuillez télécharger votre photo de profil.",
-  "upload_id_card_error": "Veuillez télécharger votre carte d'identité.",
-  "upload_police_record_error": "Veuillez télécharger votre casier judiciaire.",
-  "upload_all_images": "Veuillez télécharger toutes les images requises."
+  "reservation_accepted": "Réservation acceptée",
+  "error_accepting_reservation": "Erreur lors de l'acceptation de la réservation",
+  "reservation_declined": "Réservation refusée",
+  "error_declining_reservation": "Erreur lors du refus de la réservation",
+  "no_pending_reservations": "Aucune réservation en attente",
+  "student": "Étudiant",
+  "decline": "Refuser",
 
-
+  "profile_image_required": "La photo de profil est obligatoire.",
+  "id_card_required": "La carte d'identité est obligatoire.",
+  "police_record_required": "Le casier judiciaire est obligatoire."
 
 }

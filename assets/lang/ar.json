@@ -105,25 +105,21 @@
   "change_profile_picture": "تغيير صورة الملف الشخصي",
   "no_accepted_requests": "لا توجد طلبات مقبولة حتى الآن.",
   "gardening": "البستنة",
-
+  "painting": "الطلاء",
   "tutoring": "دروس خصوصية",
   "cleaning": "تنظيف",
   "plumbing": "سباكة",
   "electricity": "كهرباء",
-
   "confirm_completion": "تأكيد الإكمال",
   "confirm_completion_message": "هل تريد تحديد هذا الطلب كمكتمل؟",
-
   "confirm": "تأكيد",
   "mark_as_completed": "وضع علامة كمكتمل",
-  "request_marked_completed": "تم تحديد الطلب كمكتمل. في انتظار تأكيد العميل.",
 
+  "request_marked_completed": "تم تحديد الطلب كمكتمل. في انتظار تأكيد العميل.",
   "contact_us": "اتصل بنا",
   "contact_us_description": "إذا كان لديك أي أسئلة أو تحتاج إلى مساعدة، يرجى التواصل عبر البريد الإلكتروني أو الهاتف.",
-
   "history": "السجل",
   "no_history": "لا توجد طلبات مكتملة في السجل.",
-
   "completed": "مكتمل",
   "canceled": "ملغى",
   "pending_confirmations": "التأكيدات المعلقة",
@@ -168,10 +164,9 @@
   "request_sent": "تم إرسال الطلب بنجاح",
   "no_workers_found": "لا يوجد عمال متاحون لهذه الخدمة في المنطقة القريبة",
   "in_progress": "قيد التنفيذ",
-  "painting": "الطلاء",
   "apprenticeship": "دروس خصوصية",
   "education_level": "مستوى التعليم",
-  "primaire": "الابتدائي",
+  "Primary": "الابتدائي",
   "cem": "المتوسط",
   "lycee": "الثانوي",
   "subjects": "المواد",
@@ -209,23 +204,51 @@
     "1_year": "سنة واحدة"
   },
   "education_levels": {
-    "الابتدائي": ["الرياضيات", "اللغة العربية", "الفيزياء", "العلوم الطبيعية", "اللغة الفرنسية"],
-    "المتوسط": ["الرياضيات", "اللغة العربية", "الفيزياء", "العلوم الطبيعية", "اللغة الفرنسية", "اللغة الإنجليزية"],
-    "الثانوي": ["الرياضيات", "اللغة العربية", "الفيزياء", "العلوم الطبيعية", "اللغة الفرنسية", "اللغة الإنجليزية", "الفلسفة", "المحاسبة"]
+    "Primary": ["Mathematics", "Arabic", "Physics", "Natural Sciences", "French"],
+    "Middle School": ["Mathematics", "Arabic", "Physics", "Natural Sciences", "French", "English"],
+    "High School": ["Mathematics", "Arabic", "Physics", "Natural Sciences", "French", "English", "Philosophy", "Accounting"]
   },
-
+  "subjectss": {
+    "Mathematics": "الرياضيات",
+    "Arabic": "اللغة العربية",
+    "Physics": "الفيزياء",
+    "Natural Sciences": "العلوم الطبيعية",
+    "French": "اللغة الفرنسية",
+    "English": "اللغة الإنجليزية",
+    "Philosophy": "الفلسفة",
+    "Accounting": "المحاسبة"
+  },
   "contact": "اتصال",
   "reserve": "احجز",
   "contact_to_reserve": "تواصل مع المعلم لتأكيد توفره. بمجرد الموافقة، اضغط على 'احجز' لإتمام الطلب.",
   "reservation_successful": "تم الحجز بنجاح!",
-  "no_teachers_found": "لم يتم العثور على معلمين قريبين. حاول اختيار مادة أخرى أو زيادة نطاق البحث.",
+  "no_teachers_found": "لم يتم العثور على معلمين قريبين. حاول اختيار مادة أخرى.",
   "close": "إغلاق",
+  "accepted_reservations": "الحجوزات المقبولة",
+  "please_sign_in": "يرجى تسجيل الدخول",
+  "error_loading_data": "خطأ في تحميل البيانات",
+  "no_accepted_reservations": "لا توجد حجوزات مقبولة.",
 
-  "upload_profile_image_error": "يرجى تحميل صورة الملف الشخصي.",
-  "upload_id_card_error": "يرجى تحميل بطاقة الهوية.",
-  "upload_police_record_error": "يرجى تحميل السجل الجنائي.",
-  "upload_all_images": "يرجى تحميل جميع الصور المطلوبة."
+  "notes": "ملاحظات",
+  "reservation_time": "وقت الحجز",
+  "contact_info": "معلومات الاتصال",
+  "reservation_marked_as_completed": "تم وضع علامة على الحجز كمكتمل.",
+  "confirm_cancellation": "تأكيد الإلغاء",
+  "cancel_reservation_confirmation": "هل تريد حقًا إلغاء هذا الحجز؟",
+  "reservation_cancelled": "تم إلغاء الحجز",
 
+  "reservation_accepted": "تم قبول الحجز",
+  "error_accepting_reservation": "خطأ في قبول الحجز",
+  "reservation_declined": "تم رفض الحجز",
+  "error_declining_reservation": "خطأ في رفض الحجز",
+  "no_pending_reservations": "لا توجد حجوزات معلقة",
+  "student": "الطالب",
+  "decline": "رفض",
 
+  "yes": "نعم",
+  "no": "لا",
+
+  "profile_image_required": "صورة الملف الشخصي مطلوبة.",
+  "id_card_required": "بطاقة الهوية مطلوبة.",
+  "police_record_required": "السجل الجنائي مطلوب."
 }
-

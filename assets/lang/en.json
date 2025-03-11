@@ -206,22 +206,36 @@
     "Middle School": ["Mathematics", "Arabic", "Physics", "Natural Sciences", "French", "English"],
     "High School": ["Mathematics", "Arabic", "Physics", "Natural Sciences", "French", "English", "Philosophy", "Accounting"]
   },
+  "subjectss": {
+    "Mathematics": "Mathematics",
+    "Arabic": "Arabic",
+    "Physics": "Physics",
+    "Natural Sciences": "Natural Sciences",
+    "French": "French",
+    "English": "English",
+    "Philosophy": "Philosophy",
+    "Accounting": "Accounting"
+  },
 
   "contact": "Contact",
   "reserve": "Reserve",
   "contact_to_reserve": "Contact the teacher to confirm availability. Once agreed, click 'Reserve' to finalize the request.",
   "reservation_successful": "Reservation successful!",
-  "no_teachers_found": "No teachers found nearby. Try selecting another subject or increasing the search radius.",
+  "no_teachers_found": "No teachers found nearby. Try selecting another subject.",
   "close": "Close",
   "distance": "Distance",
   "request_time": "Time",
   "agreed_bid": "Agreed Bid",
   "worker_will_call": "The worker will call you soon.",
   "no_bid_info": "No bid information available",
+  "reservation_declined": "Reservation declined",
+  "error_declining_reservation": "Error declining reservation",
+  "no_pending_reservations": "No pending reservations",
+  "student": "Student",
+  "decline": "Decline",
 
-  "upload_profile_image_error": "Please upload your profile image.",
-  "upload_id_card_error": "Please upload your ID card.",
-  "upload_police_record_error": "Please upload your police record.",
-  "upload_all_images": "Please upload all required images."
+  "profile_image_required": "Profile image is required.",
+  "id_card_required": "ID card is required.",
+  "police_record_required": "Police record is required."
 
 }
